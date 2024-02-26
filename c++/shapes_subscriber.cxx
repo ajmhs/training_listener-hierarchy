@@ -69,6 +69,11 @@ void run_subscriber_application(unsigned int domain_id, unsigned int sample_coun
     dds::sub::Subscriber subscriber(participant);
     dds::sub::DataReader< ::ShapeTypeExtended> reader(subscriber, topic);
 
+    // Get data reader listener shared_ptr from domain participant listener shared_ptr
+    using data_reader_listener_t = dds::sub::DataReaderListener<::ShapeTypeExtended>;
+    std::shared_ptr<data_reader_listener_t> dr_listener = std::dynamic_pointer_cast<data_reader_listener_t>(participant_listener);
+    reader.set_listener(dr_listener); // not necessary, as the participant listener will handle this, but showing how it *could* be done
+
     // Create a ReadCondition for any data received on this reader and set a
     // handler to process the data
     unsigned int samples_read = 0;

@@ -30,81 +30,6 @@
 
 #include "participant_listener.hpp"
 
-template <typename T>
-class DWListener : public dds::pub::NoOpDataWriterListener<T> {
-
-    void on_offered_deadline_missed(dds::pub::DataWriter<T>& writer, 
-        const dds::core::status::OfferedDeadlineMissedStatus& status) {
-
-    }
-
-    void on_offered_incompatible_qos(dds::pub::DataWriter<T>& writer, 
-        const dds::core::status::OfferedIncompatibleQosStatus& status) {
-
-    }
-
-    void on_liveliness_lost(dds::pub::DataWriter<T>& writer, 
-        const dds::core::status::LivelinessLostStatus& status) {
-
-    }
-
-    void on_publication_matched(dds::pub::DataWriter<T>& writer, 
-        const dds::core::status::PublicationMatchedStatus& status) {
-
-    }
-
-    void on_reliable_writer_cache_changed(dds::pub::DataWriter<T>& writer, 
-        const rti::core::status::ReliableWriterCacheChangedStatus& status) {
-
-    }
-
-    void on_reliable_reader_activity_changed(dds::pub::DataWriter<T>& writer,
-        const rti::core::status::ReliableReaderActivityChangedStatus& status) {
-
-    }
-
-    void on_instance_replaced(dds::pub::DataWriter<T>& writer, 
-        const dds::core::InstanceHandle& handle) {
-
-    }
-
-    void on_application_acknowledgment(dds::pub::DataWriter<T>& writer,
-        const rti::pub::AcknowledgmentInfo& info) {
-
-    }
-
-    void on_service_request_accepted(dds::pub::DataWriter<T>& writer,
-        const rti::core::status::ServiceRequestAcceptedStatus& status) {
-
-    }
-    
-    void on_destination_unreachable(dds::pub::DataWriter<T>& writer, 
-        const dds::core::InstanceHandle& handle, const rti::core::Locator& locator) {
-
-    } 
-    // Tried not to use the no-op version so I'm forced to override the pure virtual functions
-    // But I can't see in the docs what's expected of these two functions:
-
-    // void* on_data_request(dds::pub::DataWriter<T>& writer,
-    //     const rti::core::Cookie& cookie) {
-
-    // }
-
-    // void on_data_return(dds::pub::DataWriter<T>& writer, 
-    //     void*, 
-    //     const rti::core::Cookie& cookie) {
-
-    // }
-
-    void on_sample_removed(dds::pub::DataWriter<T>& writer, 
-        const rti::core::Cookie& cookie) {
-
-    }
-};
-
-
-using ShapesDWListener = DWListener< ::ShapeTypeExtended>;
-
 void run_publisher_application(unsigned int domain_id, unsigned int sample_count)
 {
     // DDS objects behave like shared pointers or value types
@@ -120,12 +45,22 @@ void run_publisher_application(unsigned int domain_id, unsigned int sample_count
 
     // Create a Topic with a name and a datatype
     dds::topic::Topic< ::ShapeTypeExtended> topic(participant, "Circle");
+
+    // Get topic listener shared_ptr from domain participant listener shared_ptr
+    using topic_listener_t = dds::topic::TopicListener<::ShapeTypeExtended>;
+    std::shared_ptr<topic_listener_t> topic_listener = std::dynamic_pointer_cast<topic_listener_t>(participant_listener);
+    topic.set_listener(topic_listener); // not necessary, as the participant listener will handle this, but showing how it *could* be done
     
     // Create a Publisher
     dds::pub::Publisher publisher(participant);
 
     // Create a DataWriter with default QoS
     dds::pub::DataWriter< ::ShapeTypeExtended> writer(publisher, topic);
+
+    // Get data writer listener shared_ptr from domain participant listener shared_ptr
+    using data_writer_listener_t = dds::pub::DataWriterListener<::ShapeTypeExtended>;
+    std::shared_ptr<data_writer_listener_t> dw_listener = std::dynamic_pointer_cast<data_writer_listener_t>(participant_listener);
+    writer.set_listener(dw_listener); // not necessary, as the participant listener will handle this, but showing how it *could* be done
     
     ::ShapeTypeExtended data;
     // Main loop, write data
